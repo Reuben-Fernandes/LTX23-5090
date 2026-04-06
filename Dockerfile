@@ -17,13 +17,13 @@ pip install https://huggingface.co/ReubenF10/ComfyUI-Models/resolve/main/wheels/
 echo " → Installing custom nodes..."
 cd /workspace/ComfyUI/custom_nodes
 
-git clone https://github.com/ltdrdata/ComfyUI-Manager --quiet
-git clone https://github.com/Lightricks/ComfyUI-LTXVideo --quiet
-git clone https://github.com/kijai/ComfyUI-KJNodes --quiet
-git clone https://github.com/rgthree/rgthree-comfy --quiet
-git clone https://github.com/city96/ComfyUI-GGUF --quiet
-git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite --quiet
-git clone https://github.com/yolain/ComfyUI-Easy-Use --quiet
+git clone https://github.com/ltdrdata/ComfyUI-Manager
+git clone https://github.com/Lightricks/ComfyUI-LTXVideo
+git clone https://github.com/kijai/ComfyUI-KJNodes
+git clone https://github.com/rgthree/rgthree-comfy
+git clone https://github.com/city96/ComfyUI-GGUF
+git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite
+git clone https://github.com/yolain/ComfyUI-Easy-Use
 
 for dir in /workspace/ComfyUI/custom_nodes/*/; do
     if [ -f "$dir/requirements.txt" ]; then
