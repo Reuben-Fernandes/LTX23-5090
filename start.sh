@@ -11,7 +11,7 @@ export HF_HUB_ENABLE_HF_TRANSFER=1
 
 echo " → Checking models..."
 
-python3 << PYEOF
+/venv/main/bin/python << PYEOF
 import os, shutil
 from huggingface_hub import hf_hub_download
 
@@ -38,3 +38,6 @@ for repo_id, filename, dest_folder in models:
 
 print("✓ All models ready")
 PYEOF
+
+# Keep container alive so Vast doesn't stop the instance
+tail -f /dev/null
