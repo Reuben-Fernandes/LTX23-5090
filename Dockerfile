@@ -46,4 +46,17 @@ RUN for dir in /workspace/ComfyUI/custom_nodes/*/; do \
     fi \
     done
 
-# ── SageAttention3 (SM120 / RTX 5090)
+# ── SageAttention3 (SM120 / RTX 5090) ────────────────────────────
+RUN /venv/main/bin/pip install \
+    https://huggingface.co/ReubenF10/ComfyUI-Models/resolve/main/wheels/ltx/5090/sageattn3-1.0.0-cp312-cp312-linux_x86_64.whl \
+    --quiet
+
+# ── Supervisor config for ComfyUI ────────────────────────────────
+RUN mkdir -p /etc/supervisor/conf.d /var/log/portal
+COPY comfyui.conf /etc/supervisor/conf.d/comfyui.conf
+
+# ── Start Script ──────────────────────────────────────────────────
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
+CMD ["/start.sh"]
