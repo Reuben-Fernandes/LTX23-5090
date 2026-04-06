@@ -3,8 +3,6 @@ FROM vastai/base-image:cuda-12.8.1-cudnn-devel-ubuntu22.04-py312
 
 ENV HF_HUB_ENABLE_HF_TRANSFER=1
 ENV DEBIAN_FRONTEND=noninteractive
-
-# ── Portal config ─────────────────────────────────────────────────
 ENV PORTAL_CONFIG="localhost:1111:11111:/:Instance Portal|localhost:8188:18188:/:ComfyUI|localhost:8080:18080:/:Jupyter|localhost:8080:8080:/terminals/1:Jupyter Terminal"
 ENV OPEN_BUTTON_PORT="1111"
 
@@ -13,31 +11,19 @@ WORKDIR /workspace
 # ── System Dependencies ───────────────────────────────────────────
 RUN apt-get update -qq && \
     apt-get install -y --no-install-recommends \
-    git \
-    git-lfs \
-    ffmpeg \
-    libgl1 \
-    libglib2.0-0 \
-    build-essential \
-    ninja-build \
+    git git-lfs ffmpeg libgl1 libglib2.0-0 build-essential ninja-build \
     && rm -rf /var/lib/apt/lists/*
 
 # ── PyTorch ───────────────────────────────────────────────────────
 RUN pip install torch==2.8.0+cu128 torchvision==0.23.0+cu128 torchaudio==2.8.0+cu128 \
-    --index-url https://download.pytorch.org/whl/cu128 \
-    --quiet
+    --index-url https://download.pytorch.org/whl/cu128 --quiet
 
 # ── ComfyUI ───────────────────────────────────────────────────────
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git /workspace/ComfyUI
 RUN pip install -r /workspace/ComfyUI/requirements.txt --quiet
 
 # ── Python Dependencies ───────────────────────────────────────────
-RUN pip install \
-    "huggingface_hub[cli]" \
-    hf_transfer \
-    packaging \
-    ninja \
-    --quiet
+RUN pip install "huggingface_hub[cli]" hf_transfer packaging ninja --quiet
 
 # ── Custom Nodes ──────────────────────────────────────────────────
 RUN cd /workspace/ComfyUI/custom_nodes && \
@@ -61,7 +47,7 @@ RUN pip install \
     --quiet
 
 # ── Supervisor config for ComfyUI ────────────────────────────────
-RUN mkdir -p /etc/supervisor/conf.d
+RUN mkdir -p /etc/supervisor/conf.d /var/log/portal
 COPY comfyui.conf /etc/supervisor/conf.d/comfyui.conf
 
 # ── Start Script ──────────────────────────────────────────────────
