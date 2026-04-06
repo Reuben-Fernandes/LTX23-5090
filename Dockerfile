@@ -1,40 +1,71 @@
-#!/bin/bash
-set -e
+# ── Base ─────────────────────────────────────────────────────────
+FROM vastai/base-image:cuda-12.8.1-cudnn-devel-ubuntu22.04-py312
 
-if [[ -z "$HF_TOKEN" ]]; then
-    echo "ERROR: HF_TOKEN not set."
-    exit 1
-fi
+ENV HF_HUB_ENABLE_HF_TRANSFER=1
+ENV DEBIAN_FRONTEND=noninteractive
 
-export HF_TOKEN
-export HF_HUB_ENABLE_HF_TRANSFER=1
+# ── Portal config ─────────────────────────────────────────────────
+ENV PORTAL_CONFIG="localhost:1111:11111:/:Instance Portal|localhost:8188:18188:/:ComfyUI|localhost:8080:18080:/:Jupyter|localhost:8080:8080:/terminals/1:Jupyter Terminal"
+ENV OPEN_BUTTON_PORT="1111"
 
-echo " → Checking models..."
+WORKDIR /workspace
 
-python3 << PYEOF
-import os, shutil
-from huggingface_hub import hf_hub_download
+# ── System Dependencies ───────────────────────────────────────────
+RUN apt-get update -qq && \
+    apt-get install -y --no-install-recommends \
+    git \
+    git-lfs \
+    ffmpeg \
+    libgl1 \
+    libglib2.0-0 \
+    build-essential \
+    ninja-build \
+    && rm -rf /var/lib/apt/lists/*
 
-token = os.environ["HF_TOKEN"]
-base = "/workspace/ComfyUI/models"
+# ── PyTorch ───────────────────────────────────────────────────────
+RUN pip install torch==2.8.0+cu128 torchvision==0.23.0+cu128 torchaudio==2.8.0+cu128 \
+    --index-url https://download.pytorch.org/whl/cu128 \
+    --quiet
 
-models = [
-    ("Lightricks/LTX-2.3-fp8", "ltx-2.3-22b-dev-fp8.safetensors",             "checkpoints"),
-    ("Lightricks/LTX-2.3",     "ltx-2.3-22b-distilled-lora-384.safetensors",  "loras"),
-    ("Lightricks/LTX-2.3",     "ltx-2.3-spatial-upscaler-x2-1.1.safetensors", "latent_upscale_models"),
-]
+# ── ComfyUI ───────────────────────────────────────────────────────
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git /workspace/ComfyUI
+RUN pip install -r /workspace/ComfyUI/requirements.txt --quiet
 
-for repo_id, filename, dest_folder in models:
-    save_name = filename.split("/")[-1]
-    dest = os.path.join(base, dest_folder, save_name)
-    if os.path.exists(dest):
-        print(f"  ⏭  Already exists: {save_name}")
-        continue
-    os.makedirs(os.path.join(base, dest_folder), exist_ok=True)
-    print(f"  → Downloading: {save_name}")
-    path = hf_hub_download(repo_id=repo_id, filename=filename, token=token, local_dir="/tmp/hf_dl", local_dir_use_symlinks=False)
-    shutil.move(path, dest)
-    print(f"  ✓ Saved: {save_name}")
+# ── Python Dependencies ───────────────────────────────────────────
+RUN pip install \
+    "huggingface_hub[cli]" \
+    hf_transfer \
+    packaging \
+    ninja \
+    --quiet
 
-print("✓ All models ready")
-PYEOF
+# ── Custom Nodes ──────────────────────────────────────────────────
+RUN cd /workspace/ComfyUI/custom_nodes && \
+    git clone https://github.com/ltdrdata/ComfyUI-Manager --quiet && \
+    git clone https://github.com/Lightricks/ComfyUI-LTXVideo --quiet && \
+    git clone https://github.com/kijai/ComfyUI-KJNodes --quiet && \
+    git clone https://github.com/rgthree/rgthree-comfy --quiet && \
+    git clone https://github.com/city96/ComfyUI-GGUF --quiet && \
+    git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite --quiet && \
+    git clone https://github.com/yolain/ComfyUI-Easy-Use --quiet
+
+RUN for dir in /workspace/ComfyUI/custom_nodes/*/; do \
+    if [ -f "$dir/requirements.txt" ]; then \
+        pip install -r "$dir/requirements.txt" --quiet || true; \
+    fi \
+    done
+
+# ── SageAttention3 (SM120 / RTX 5090) ────────────────────────────
+RUN pip install \
+    https://huggingface.co/ReubenF10/ComfyUI-Models/resolve/main/wheels/ltx/5090/sageattn3-1.0.0-cp312-cp312-linux_x86_64.whl \
+    --quiet
+
+# ── Supervisor config for ComfyUI ────────────────────────────────
+RUN mkdir -p /etc/supervisor/conf.d
+COPY comfyui.conf /etc/supervisor/conf.d/comfyui.conf
+
+# ── Start Script ──────────────────────────────────────────────────
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
+CMD ["/start.sh"]
