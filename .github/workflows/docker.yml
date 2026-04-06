@@ -6,6 +6,7 @@ on:
     paths:
       - 'Dockerfile'
       - 'start.sh'
+      - 'comfyui.conf'
       - '.github/workflows/docker.yml'
   workflow_dispatch:
 env:
