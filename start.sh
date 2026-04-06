@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Pod start script — LTX Video 2.3
-# Downloads models on first run, then starts ComfyUI + Jupyter
+# Downloads models on first run, then starts ComfyUI
 #
 set -e
 
@@ -34,14 +34,11 @@ base = "$COMFYUI_DIR/models"
 
 # (repo_id, filename, destination_folder)
 models = [
-    # ── Checkpoint (fp8 dev + distilled LoRA for two-stage) ──────
     ("Lightricks/LTX-2.3-fp8", "ltx-2.3-22b-dev-fp8.safetensors",            "checkpoints"),
     ("Lightricks/LTX-2.3",     "ltx-2.3-22b-distilled-lora-384.safetensors", "loras"),
-    # ── Spatial upscaler (v1.1 hotfix) ───────────────────────────
     ("Lightricks/LTX-2.3",     "ltx-2.3-spatial-upscaler-x2-1.1.safetensors","latent_upscale_models"),
 ]
 
-# No Gemma download — using Gemma API for text encoding
 for repo_id, filename, dest_folder in models:
     save_name = filename.split("/")[-1]
     dest = os.path.join(base, dest_folder, save_name)
@@ -63,17 +60,6 @@ for repo_id, filename, dest_folder in models:
 print("")
 print("✓ All models ready")
 PYEOF
-
-# ── Launch Jupyter Lab ───────────────────────────────────────────
-echo " → Starting Jupyter Lab on port 8888..."
-jupyter lab \
-    --ip=0.0.0.0 \
-    --port=8888 \
-    --no-browser \
-    --allow-root \
-    --NotebookApp.token='' \
-    --NotebookApp.password='' \
-    > /workspace/jupyter.log 2>&1 &
 
 # ── Launch ComfyUI ───────────────────────────────────────────────
 echo " → Launching ComfyUI on port 8188..."
